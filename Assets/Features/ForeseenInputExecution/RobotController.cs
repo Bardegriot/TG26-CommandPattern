@@ -44,6 +44,7 @@ public class RobotController : MonoBehaviour
     public void OnClick_MoveForwardCommand()
     {
         AddToInputQueue(new MoveForwardCommand());
+        UpdateIndex(1);
     }
 
     public void OnClick_RotateCommand(float angle)
@@ -69,15 +70,13 @@ public class RobotController : MonoBehaviour
         _targetRot = _currentRot * Quaternion.Euler(0f, angle, 0f);
         _isRotating = true;
 
-
     }
 
 
     private void AddToInputQueue(ICommandInputs command)
     {
-        //if (_playQueue.Count > 0) _playQueue.Clear();
         _playQueue.Enqueue(command);
-        //command.AddedToInputQueue();
+
     }
 
     public async Task PlayQueueAsync()
@@ -85,6 +84,7 @@ public class RobotController : MonoBehaviour
         while (_playQueue.Count > 0)
         {
             ICommandInputs command = _playQueue.Dequeue();
+            AddToUndoList(command);
             command.Execute(this);
 
             while (_isMoving || _isRotating)
@@ -97,11 +97,49 @@ public class RobotController : MonoBehaviour
 
     }
 
+    private void AddToUndoList(ICommandInputs command)
+    {
+        _undoStack.Push(command);
+        
+    }
+    private void AddToRedoList(ICommandInputs command)
+    {
+        _redoStack.Push(command);
+    }
+    private void RemoveFromUndoList(ICommandInputs command)
+    {
+        _undoStack.Push(command);
+    }
+    private void RemoveFromRedoList(ICommandInputs command)
+    {
+        _redoStack.Push(command);
+    }
+
+    private void UpdateIndex(int info)
+    {
+        if(info == 0) return;
+        if (info > 0)
+        {
+            for (int i = 0; i < info; i++)
+            {
+            _listIndex++;
+
+            }
+        }
+        else
+        {
+            for (int i = _redoStack.Count - 1 ; i > info; i--)
+            {
+                _listIndex--;
+
+            }
+        }
+    }
+
     public void Execute(ICommandInputs command)
     {
 
     }
-
 
     #endregion
 
@@ -124,6 +162,9 @@ public class RobotController : MonoBehaviour
     [SerializeField] private float _actionDuration = 1f;
 
     private Queue<ICommandInputs> _playQueue = new();
+    private Stack<ICommandInputs> _undoStack = new Stack<ICommandInputs>();
+    private Stack<ICommandInputs> _redoStack = new Stack<ICommandInputs>();
+    private int _listIndex;
 
     #endregion
 }
