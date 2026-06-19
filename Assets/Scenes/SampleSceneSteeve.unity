@@ -1938,6 +1938,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RobotController
   _moveSpeed: 3
+  _rotationSpeed: 720
   _actionDuration: 1
 --- !u!1 &1294841789
 GameObject:

@@ -20,13 +20,20 @@ public class RobotController : MonoBehaviour
     private void Update()
     {
         _currentPos = _transform.position;
-        
+
 
         if (_isMoving) _transform.position = Vector3.MoveTowards(_currentPos, _targetPos, _moveSpeed * Time.deltaTime);
         //if (_isRotating) _transform.Rotate = Vector3.MoveTowards(_currentPos, _targetPos, _moveSpeed * Time.deltaTime);
-        
+
         if (Vector3.Distance(_transform.position, _targetPos) >= 0.001f) return;
         _isMoving = false;
+
+        if(_isRotating) _transform.rotation = Quaternion.RotateTowards(_transform.rotation, _targetRot, _rotationSpeed * Time.deltaTime);
+
+        if (Quaternion.Angle(_transform.rotation, _targetRot) > 0.1f) return;
+        _transform.rotation = _targetRot;
+        _isRotating = false;
+
     }
 
     #endregion
@@ -58,7 +65,10 @@ public class RobotController : MonoBehaviour
 
     public void Rotate(float angle)
     {
-        _transform.Rotate(0f, angle, 0f);
+        _currentRot = _transform.rotation;
+        _targetRot = _currentRot * Quaternion.Euler(0f, angle, 0f);
+        _isRotating = true;
+
 
     }
 
@@ -76,6 +86,12 @@ public class RobotController : MonoBehaviour
         {
             ICommandInputs command = _playQueue.Dequeue();
             command.Execute(this);
+
+            while (_isMoving || _isRotating)
+            {
+                await Task.Yield();
+            }
+
             await Task.Delay((int)(_actionDuration * 1000));
         }
 
@@ -97,11 +113,14 @@ public class RobotController : MonoBehaviour
 
     private Vector3 _currentPos;
     private Vector3 _targetPos;
-
     private bool _isMoving;
+
+    private Quaternion _currentRot;
+    private Quaternion _targetRot;
     private bool _isRotating;
 
     [SerializeField] private float _moveSpeed = 5f;
+    [SerializeField] private float _rotationSpeed = 180f;
     [SerializeField] private float _actionDuration = 1f;
 
     private Queue<ICommandInputs> _playQueue = new();
