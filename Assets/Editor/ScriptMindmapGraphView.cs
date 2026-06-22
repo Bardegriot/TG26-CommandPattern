@@ -7,6 +7,8 @@ using System.Collections.Generic;
 
 public class ScriptMindmapGraphView : GraphView
 {
+    private Dictionary<Type, Color> featureColors = new Dictionary<Type, Color>();
+
     public ScriptMindmapGraphView()
     {
         style.flexGrow = 1;
@@ -19,10 +21,6 @@ public class ScriptMindmapGraphView : GraphView
         GridBackground grid = new GridBackground();
         Add(grid);
         grid.SendToBack();
-
-        PopulateGraphFromCode();
-        
-        CreateNoteNode(new Vector2(600, 200));
     }
 
     public void CreateNoteNode(Vector2 position)
@@ -84,9 +82,22 @@ public class ScriptMindmapGraphView : GraphView
         this.AddElement(node);
     }
 
-    public void PopulateGraphFromCode()
+    public void PopulateGraphFromCode(string assemblyName, string baseInterfaceFilter)
     {
-        Type[] allTypes = Assembly.Load("Assembly-CSharp").GetTypes();
+        DeleteElements(graphElements);
+        featureColors.Clear();
+
+        Assembly assembly;
+        try
+        {
+            assembly = Assembly.Load(assemblyName);
+        }
+        catch
+        {
+            return;
+        }
+
+        Type[] allTypes = assembly.GetTypes();
         Dictionary<Type, Node> createdNodes = new Dictionary<Type, Node>();
 
         Vector2 _positionX = Vector2.zero;
@@ -95,15 +106,45 @@ public class ScriptMindmapGraphView : GraphView
         int _indexX = 0;
         int _indexY = 0;
 
+        Type filterType = null;
+        if (!string.IsNullOrEmpty(baseInterfaceFilter))
+        {
+            foreach (var t in allTypes)
+            {
+                if (t.IsInterface && t.Name.Equals(baseInterfaceFilter, StringComparison.OrdinalIgnoreCase))
+                {
+                    filterType = t;
+                    break;
+                }
+            }
+        }
+
         foreach (var type in allTypes)
         {
-            Vector2 _position = _positionX + _positionY;
-
-            if(typeof(ICommandInputs).IsAssignableFrom(type))
+            bool isValid = false;
+            if (filterType != null)
             {
+                isValid = filterType.IsAssignableFrom(type);
+            }
+            else
+            {
+                foreach (var i in type.GetInterfaces())
+                {
+                    if (i.Name.Contains("Command") || i.Name.Contains("Input"))
+                    {
+                        isValid = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isValid)
+            {
+                Vector2 _position = _positionX + _positionY;
                 Node newNode = CreateNodeFromType(type, _position);
                 createdNodes.Add(type, newNode);
-                if(_indexX >= _indexY)
+
+                if (_indexX >= _indexY)
                 {
                     _indexY++;
                     _positionY += new Vector2(0, 225);
@@ -142,6 +183,11 @@ public class ScriptMindmapGraphView : GraphView
                         edge.input.Connect(edge);
                         edge.output.Connect(edge);
 
+                        if (featureColors.TryGetValue(@interface, out Color assignedColor))
+                        {
+                            edge.style.backgroundColor = assignedColor;
+                        }
+
                         AddElement(edge);
                     }
                 }
@@ -157,14 +203,16 @@ public class ScriptMindmapGraphView : GraphView
         node.title = type.Name;
         node.expanded = true;
 
-        node.style.borderTopColor = Color.green;
-        node.style.borderBottomColor = Color.green;
-        node.style.borderLeftColor = Color.green;
-        node.style.borderRightColor = Color.green;
-        node.style.borderTopWidth = 1.5f;
-        node.style.borderBottomWidth = 1.5f;
-        node.style.borderLeftWidth = 1.5f;
-        node.style.borderRightWidth = 1.5f;
+        Color nodeColor = GetColorForFeature(type);
+
+        node.style.borderTopColor = nodeColor;
+        node.style.borderBottomColor = nodeColor;
+        node.style.borderLeftColor = nodeColor;
+        node.style.borderRightColor = nodeColor;
+        node.style.borderTopWidth = 2f;
+        node.style.borderBottomWidth = 2f;
+        node.style.borderLeftWidth = 2f;
+        node.style.borderRightWidth = 2f;
 
         MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
@@ -176,8 +224,8 @@ public class ScriptMindmapGraphView : GraphView
         var letfPort = node.InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(bool));
         var rightPort = node.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(bool));
 
-        letfPort.portColor = Color.green;
-        rightPort.portColor = Color.green;
+        letfPort.portColor = nodeColor;
+        rightPort.portColor = nodeColor;
 
         node.inputContainer.Add(letfPort);
         node.outputContainer.Add(rightPort);
@@ -187,6 +235,33 @@ public class ScriptMindmapGraphView : GraphView
 
         this.AddElement(node);
         return node;
+    }
+
+    private Color GetColorForFeature(Type type)
+    {
+        Type targetKey = type.IsInterface ? type : null;
+
+        if (targetKey == null)
+        {
+            foreach (var i in type.GetInterfaces())
+            {
+                if (i.Name.Contains("Command") || i.Name.Contains("Input"))
+                {
+                    targetKey = i;
+                    break;
+                }
+            }
+        }
+
+        if (targetKey == null) targetKey = type;
+
+        if (!featureColors.TryGetValue(targetKey, out Color customColor))
+        {
+            customColor = UnityEngine.Random.ColorHSV(0f, 1f, 0.6f, 0.8f, 0.7f, 0.9f);
+            featureColors[targetKey] = customColor;
+        }
+
+        return customColor;
     }
 
     public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)
