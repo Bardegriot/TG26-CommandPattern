@@ -10,29 +10,38 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e753bf8495e2440319b2095d29eb37bf, type: 3}
-  m_Name: ICommandMindMap
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp-Editor::ScriptMindmapData
   targetAssembly: Assembly-CSharp
-  targetInterface: ICommandInputs
+  targetInterface: '[All Features / Classes]'
   savedNotes:
   - nodeId: c6e6f43d-5cc1-4691-8003-ce98748a9b96
     nodeTitle: Undo feature
     position: {x: 455, y: 345}
     features:
     - Dict or List ?
+    - New custom feature description...
+  - nodeId: 212b354a-1565-4e30-9a82-098fe42449b3
+    nodeTitle: 'TO DO : '
+    position: {x: -323, y: -294}
+    features:
+    - Check UML Diagrams
+    - Check activity Diagrams
+    - Check Class Diagrams
+    - Check Object Diagrams
   savedGeneratedNodes:
-  - typeName: ICommandInputs
-    position: {x: -143, y: -159}
-  - typeName: IRotateCommandReceiver
-    position: {x: 181, y: -265}
   - typeName: IMoveForwardCommandReceiver
     position: {x: 171, y: -126}
+  - typeName: IRotateCommandReceiver
+    position: {x: 181, y: -265}
+  - typeName: IUndoCommand
+    position: {x: 216, y: 377}
   - typeName: MoveForwardCommand
     position: {x: 202, y: 9}
   - typeName: RotateCommand
     position: {x: 216, y: 177}
-  - typeName: IUndoCommand
-    position: {x: 216, y: 377}
+  - typeName: ICommandInputs
+    position: {x: -243, y: 39}
   savedFeatureColors:
   - typeKeyName: ScriptMindmapData, Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral,
       PublicKeyToken=null
