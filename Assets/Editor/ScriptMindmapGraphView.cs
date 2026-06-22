@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 public class ScriptMindmapGraphView : GraphView
 {
-    private Dictionary<Type, Color> featureColors = new Dictionary<Type, Color>();
+    public Dictionary<Type, Color> featureColors = new Dictionary<Type, Color>();
 
     public ScriptMindmapGraphView()
     {
@@ -80,6 +80,13 @@ public class ScriptMindmapGraphView : GraphView
         addFeatureButton.style.marginBottom = 5;
         node.extensionContainer.Add(addFeatureButton);
 
+        var leftPort = node.InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(bool));
+        var rightPort = node.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(bool));
+        leftPort.portColor = new Color(1.0f, 0.65f, 0.0f);
+        rightPort.portColor = new Color(1.0f, 0.65f, 0.0f);
+        node.inputContainer.Add(leftPort);
+        node.outputContainer.Add(rightPort);
+
         node.RefreshPorts();
         node.RefreshExpandedState();
 
@@ -87,7 +94,7 @@ public class ScriptMindmapGraphView : GraphView
         return node;
     }
 
-    public void PopulateGraphFromCode(string assemblyName, string baseInterfaceFilter)
+    public void PopulateGraphFromCode(string assemblyName, string baseInterfaceFilter, List<GeneratedNodeData> presetPositions = null)
     {
         var elementsToDelete = new List<GraphElement>();
         foreach (var element in graphElements)
@@ -98,7 +105,6 @@ public class ScriptMindmapGraphView : GraphView
             }
         }
         DeleteElements(elementsToDelete);
-        featureColors.Clear();
 
         if (string.IsNullOrEmpty(assemblyName)) return;
 
@@ -146,20 +152,32 @@ public class ScriptMindmapGraphView : GraphView
 
             if (isValid)
             {
-                Vector2 _position = _positionX + _positionY;
-                Node newNode = CreateNodeFromType(type, _position);
+                Vector2 calculatedPosition = _positionX + _positionY;
+                if (presetPositions != null)
+                {
+                    var foundPreset = presetPositions.Find(p => p.typeName == type.FullName);
+                    if (foundPreset != null)
+                    {
+                        calculatedPosition = foundPreset.position;
+                    }
+                }
+
+                Node newNode = CreateNodeFromType(type, calculatedPosition);
                 createdNodes.Add(type, newNode);
 
-                if (_indexX >= _indexY)
+                if (presetPositions == null)
                 {
-                    _indexY++;
-                    _positionY += new Vector2(0, 225);
-                }
-                else
-                {
-                    _indexX++;
-                    _positionY -= new Vector2(0, 225);
-                    _positionX += new Vector2(225, 0);
+                    if (_indexX >= _indexY)
+                    {
+                        _indexY++;
+                        _positionY += new Vector2(0, 225);
+                    }
+                    else
+                    {
+                        _indexX++;
+                        _positionY -= new Vector2(0, 225);
+                        _positionX += new Vector2(225, 0);
+                    }
                 }
             } 
         }
@@ -200,6 +218,7 @@ public class ScriptMindmapGraphView : GraphView
         var node = new Node();
         node.SetPosition(new Rect(position.x, position.y, 0, 0));
         node.title = type.Name;
+        node.viewDataKey = type.FullName;
         node.expanded = true;
 
         Color nodeColor = GetColorForFeature(type);
@@ -214,11 +233,11 @@ public class ScriptMindmapGraphView : GraphView
             node.extensionContainer.Add(new Label(method.Name));
         }
 
-        var letfPort = node.InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(bool));
+        var leftPort = node.InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(bool));
         var rightPort = node.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(bool));
-        letfPort.portColor = nodeColor; rightPort.portColor = nodeColor;
+        leftPort.portColor = nodeColor; rightPort.portColor = nodeColor;
 
-        node.inputContainer.Add(letfPort);
+        node.inputContainer.Add(leftPort);
         node.outputContainer.Add(rightPort);
         node.RefreshPorts();
         node.RefreshExpandedState();

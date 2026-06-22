@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.Experimental.GraphView;
 using System;
+using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 
@@ -11,8 +12,12 @@ public class ScriptMindmapWindows : EditorWindow
     private ScriptMindmapGraphView graphView;
     private PopupField<string> assemblyPopup;
     private PopupField<string> interfacePopup;
+    private PopupField<string> presetPopup;
+    
     private List<string> assemblies = new List<string>();
     private List<string> interfaces = new List<string>();
+    private List<string> presets = new List<string>();
+    private Dictionary<string, string> presetPaths = new Dictionary<string, string>();
 
     [MenuItem("Tools/BreakingFrame/ScriptMindmap")]
     public static void ShowWindow()
@@ -23,6 +28,7 @@ public class ScriptMindmapWindows : EditorWindow
     public void CreateGUI()
     {
         LoadProjectReflectionData();
+        ScanProjectForPresets();
 
         var toolbar = new VisualElement();
         toolbar.style.flexDirection = FlexDirection.Row;
@@ -31,38 +37,40 @@ public class ScriptMindmapWindows : EditorWindow
         toolbar.style.backgroundColor = new Color(0.18f, 0.18f, 0.18f);
 
         assemblyPopup = new PopupField<string>("Assembly:", assemblies, 0);
-        assemblyPopup.style.width = 250;
+        assemblyPopup.style.width = 200;
         assemblyPopup.style.marginLeft = 5;
         assemblyPopup.RegisterValueChangedCallback(evt => UpdateInterfaceOptions(evt.newValue));
 
         interfacePopup = new PopupField<string>("Interface:", interfaces, 0);
-        interfacePopup.style.width = 250;
+        interfacePopup.style.width = 200;
         interfacePopup.style.marginLeft = 5;
 
         UpdateInterfaceOptions(assemblyPopup.value);
 
+        presetPopup = new PopupField<string>("Presets:", presets, 0);
+        presetPopup.style.width = 180;
+        presetPopup.style.marginLeft = 10;
+        presetPopup.RegisterValueChangedCallback(evt => OnPresetSelected(evt.newValue));
+
         Button generateButton = new Button(() => {
             graphView.PopulateGraphFromCode(assemblyPopup.value, interfacePopup.value);
-        }) { text = "Generate Mindmap" };
+        }) { text = "Generate" };
         generateButton.style.marginLeft = 5;
 
         Button addNoteButton = new Button(() => {
             graphView.CreateNoteNode(new Vector2(100, 100));
-        }) { text = "Add Note Node" };
+        }) { text = "+ Note Node" };
         addNoteButton.style.marginLeft = 10;
 
         Button saveButton = new Button(SaveMindmapData) { text = "Save Layout" };
         saveButton.style.marginLeft = 10;
 
-        Button loadButton = new Button(LoadMindmapData) { text = "Load Layout" };
-        loadButton.style.marginLeft = 5;
-
         toolbar.Add(assemblyPopup);
         toolbar.Add(interfacePopup);
         toolbar.Add(generateButton);
+        toolbar.Add(presetPopup);
         toolbar.Add(addNoteButton);
         toolbar.Add(saveButton);
-        toolbar.Add(loadButton);
 
         rootVisualElement.Add(toolbar);
 
@@ -84,6 +92,25 @@ public class ScriptMindmapWindows : EditorWindow
             }
         }
         if (assemblies.Count == 0) assemblies.Add("Assembly-CSharp");
+    }
+
+    private void ScanProjectForPresets()
+    {
+        presets.Clear();
+        presetPaths.Clear();
+        presets.Add("[None]");
+
+        string[] guids = AssetDatabase.FindAssets("t:ScriptMindmapData");
+        foreach (string guid in guids)
+        {
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            string filename = Path.GetFileNameWithoutExtension(path);
+            if (!presets.Contains(filename))
+            {
+                presets.Add(filename);
+                presetPaths[filename] = path;
+            }
+        }
     }
 
     private void UpdateInterfaceOptions(string assemblyName)
@@ -111,6 +138,34 @@ public class ScriptMindmapWindows : EditorWindow
         }
     }
 
+    private void OnPresetSelected(string presetName)
+    {
+        if (presetName == "[None]" || !presetPaths.TryGetValue(presetName, out string path)) return;
+
+        ScriptMindmapData data = AssetDatabase.LoadAssetAtPath<ScriptMindmapData>(path);
+        if (data == null) return;
+
+        if (assemblies.Contains(data.targetAssembly)) assemblyPopup.value = data.targetAssembly;
+        UpdateInterfaceOptions(assemblyPopup.value);
+        if (interfaces.Contains(data.targetInterface)) interfacePopup.value = data.targetInterface;
+
+        graphView.DeleteElements(graphView.graphElements);
+        graphView.featureColors.Clear();
+
+        foreach (var colData in data.savedFeatureColors)
+        {
+            Type t = Type.GetType(colData.typeKeyName);
+            if (t != null) graphView.featureColors[t] = colData.colorValue;
+        }
+
+        graphView.PopulateGraphFromCode(assemblyPopup.value, interfacePopup.value, data.savedGeneratedNodes);
+
+        foreach (var savedNote in data.savedNotes)
+        {
+            graphView.CreateNoteNode(savedNote.position, savedNote.nodeTitle, savedNote.features);
+        }
+    }
+
     private void SaveMindmapData()
     {
         string path = EditorUtility.SaveFilePanelInProject("Save Mindmap Layout", "NewMindmapLayout", "asset", "Save Layout");
@@ -120,48 +175,47 @@ public class ScriptMindmapWindows : EditorWindow
         data.targetAssembly = assemblyPopup.value;
         data.targetInterface = interfacePopup.value;
 
+        foreach (var pair in graphView.featureColors)
+        {
+            if (pair.Key != null)
+            {
+                data.savedFeatureColors.Add(new ColorData { typeKeyName = pair.Key.AssemblyQualifiedName, colorValue = pair.Value });
+            }
+        }
+
         graphView.graphElements.ForEach(element =>
         {
-            if (element is Node node && node.viewDataKey == "CustomNoteNode")
+            if (element is Node node)
             {
-                NoteNodeData noteData = new NoteNodeData();
-                TextField titleField = node.titleContainer.Q<TextField>();
-                noteData.nodeTitle = titleField != null ? titleField.value : "Note";
-                noteData.position = node.GetPosition().position;
-
-                node.extensionContainer.Query<TextField>().ForEach(txt =>
+                if (node.viewDataKey == "CustomNoteNode")
                 {
-                    noteData.features.Add(txt.value);
-                });
+                    NoteNodeData noteData = new NoteNodeData();
+                    TextField titleField = node.titleContainer.Q<TextField>();
+                    noteData.nodeTitle = titleField != null ? titleField.value : "Note";
+                    noteData.position = node.GetPosition().position;
 
-                data.savedNotes.Add(noteData);
+                    node.extensionContainer.Query<TextField>().ForEach(txt =>
+                    {
+                        noteData.features.Add(txt.value);
+                    });
+
+                    data.savedNotes.Add(noteData);
+                }
+                else if (!string.IsNullOrEmpty(node.viewDataKey))
+                {
+                    GeneratedNodeData genNode = new GeneratedNodeData
+                    {
+                        typeName = node.viewDataKey,
+                        position = node.GetPosition().position
+                    };
+                    data.savedGeneratedNodes.Add(genNode);
+                }
             }
         });
 
         AssetDatabase.CreateAsset(data, path);
         AssetDatabase.SaveAssets();
-    }
-
-    private void LoadMindmapData()
-    {
-        string path = EditorUtility.OpenFilePanel("Load Mindmap Layout", "Assets", "asset");
-        if (string.IsNullOrEmpty(path)) return;
-
-        path = "Assets" + path.Substring(Application.dataPath.Length);
-        ScriptMindmapData data = AssetDatabase.LoadAssetAtPath<ScriptMindmapData>(path);
-        if (data == null) return;
-
-        if (assemblies.Contains(data.targetAssembly)) assemblyPopup.value = data.targetAssembly;
-        UpdateInterfaceOptions(assemblyPopup.value);
-        if (interfaces.Contains(data.targetInterface)) interfacePopup.value = data.targetInterface;
-
-        graphView.DeleteElements(graphView.graphElements);
-
-        graphView.PopulateGraphFromCode(assemblyPopup.value, interfacePopup.value);
-
-        foreach (var savedNote in data.savedNotes)
-        {
-            graphView.CreateNoteNode(savedNote.position, savedNote.nodeTitle, savedNote.features);
-        }
+        ScanProjectForPresets();
+        if (presetPopup != null) presetPopup.choices = presets;
     }
 }
