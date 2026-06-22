@@ -21,33 +21,62 @@ public class ScriptMindmapGraphView : GraphView
         grid.SendToBack();
 
         PopulateGraphFromCode();
-
+        
+        CreateNoteNode(new Vector2(600, 200));
     }
 
-    public void CreateTestNode()
+    public void CreateNoteNode(Vector2 position)
     {
         var node = new Node();
-        node.title = "Test Node";
-        var letfPort = node.InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(bool));
-        var rightPort = node.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(bool));
+        node.SetPosition(new Rect(position.x, position.y, 250, 180));
 
-        node.inputContainer.Add(letfPort);
-        node.outputContainer.Add(rightPort);
+        Label titleLabel = node.titleContainer.Q<Label>("title-label");
+        if (titleLabel != null)
+        {
+            titleLabel.style.display = DisplayStyle.None;
+        }
 
-        node.RefreshPorts();
-        node.RefreshExpandedState();
+        TextField titleTextField = new TextField
+        {
+            value = "Type Feature Group Name"
+        };
+        titleTextField.style.flexGrow = 1;
+        titleTextField.style.marginRight = 5;
+        node.titleContainer.Insert(0, titleTextField);
 
-        this.AddElement(node);
-    }
+        node.style.borderTopColor = new Color(1.0f, 0.65f, 0.0f);
+        node.style.borderBottomColor = new Color(1.0f, 0.65f, 0.0f);
+        node.style.borderLeftColor = new Color(1.0f, 0.65f, 0.0f);
+        node.style.borderRightColor = new Color(1.0f, 0.65f, 0.0f);
+        node.style.borderTopWidth = 2;
+        node.style.borderBottomWidth = 2;
+        node.style.borderLeftWidth = 2;
+        node.style.borderRightWidth = 2;
 
-    public void CreateNewNode()
-    {
-        var node = new Node();
-        var letfPort = node.InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(bool));
-        var rightPort = node.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(bool));
+        VisualElement listContainer = new VisualElement();
+        listContainer.style.paddingLeft = 5;
+        listContainer.style.paddingRight = 5;
+        node.extensionContainer.Add(listContainer);
 
-        node.inputContainer.Add(letfPort);
-        node.outputContainer.Add(rightPort);
+        Button addFeatureButton = new Button(() =>
+        {
+            TextField newFeatureField = new TextField
+            {
+                value = "New custom feature description..."
+            };
+            newFeatureField.style.whiteSpace = WhiteSpace.Normal;
+            newFeatureField.style.marginTop = 2;
+            newFeatureField.style.marginBottom = 2;
+            listContainer.Add(newFeatureField);
+            node.RefreshExpandedState();
+        })
+        {
+            text = "Add Feature Idea"
+        };
+        
+        addFeatureButton.style.marginTop = 5;
+        addFeatureButton.style.marginBottom = 5;
+        node.extensionContainer.Add(addFeatureButton);
 
         node.RefreshPorts();
         node.RefreshExpandedState();
@@ -60,15 +89,11 @@ public class ScriptMindmapGraphView : GraphView
         Type[] allTypes = Assembly.Load("Assembly-CSharp").GetTypes();
         Dictionary<Type, Node> createdNodes = new Dictionary<Type, Node>();
 
-
         Vector2 _positionX = Vector2.zero;
         Vector2 _positionY = Vector2.zero;
         
-
         int _indexX = 0;
         int _indexY = 0;
-
-
 
         foreach (var type in allTypes)
         {
@@ -82,55 +107,46 @@ public class ScriptMindmapGraphView : GraphView
                 {
                     _indexY++;
                     _positionY += new Vector2(0, 225);
-
                 }
                 else
                 {
-
                     _indexX++;
                     _positionY -= new Vector2(0, 225);
                     _positionX += new Vector2(225, 0);
-
                 }
-                
             } 
-            
         }
 
         foreach (var node in createdNodes)
         {
-        Type currentType = node.Key;
-        Node currentNode = node.Value;
+            Type currentType = node.Key;
+            Node currentNode = node.Value;
 
-        Type[] interfaces = currentType.GetInterfaces();
+            Type[] interfaces = currentType.GetInterfaces();
 
-        foreach (var @interface in interfaces)
-        {
-            if (createdNodes.TryGetValue(@interface, out Node interfaceNode))
+            foreach (var @interface in interfaces)
             {
-                Port outputPort = interfaceNode.outputContainer.Q<Port>();
-                
-                Port inputPort = currentNode.inputContainer.Q<Port>();
-
-                if (outputPort != null && inputPort != null)
+                if (createdNodes.TryGetValue(@interface, out Node interfaceNode))
                 {
-                    Edge edge = new Edge
+                    Port outputPort = interfaceNode.outputContainer.Q<Port>();
+                    Port inputPort = currentNode.inputContainer.Q<Port>();
+
+                    if (outputPort != null && inputPort != null)
                     {
-                        output = outputPort,
-                        input = inputPort
-                    };
+                        Edge edge = new Edge
+                        {
+                            output = outputPort,
+                            input = inputPort
+                        };
 
-                    edge.input.Connect(edge);
-                    edge.output.Connect(edge);
+                        edge.input.Connect(edge);
+                        edge.output.Connect(edge);
 
-                    edge.style.unityBackgroundImageTintColor = Color.green;
-
-                    AddElement(edge);
+                        AddElement(edge);
+                    }
                 }
             }
         }
-    }
-
     }
 
     private Node CreateNodeFromType(Type type, Vector2 position)
@@ -140,6 +156,15 @@ public class ScriptMindmapGraphView : GraphView
 
         node.title = type.Name;
         node.expanded = true;
+
+        node.style.borderTopColor = Color.green;
+        node.style.borderBottomColor = Color.green;
+        node.style.borderLeftColor = Color.green;
+        node.style.borderRightColor = Color.green;
+        node.style.borderTopWidth = 1.5f;
+        node.style.borderBottomWidth = 1.5f;
+        node.style.borderLeftWidth = 1.5f;
+        node.style.borderRightWidth = 1.5f;
 
         MethodInfo[] methods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 
@@ -151,16 +176,17 @@ public class ScriptMindmapGraphView : GraphView
         var letfPort = node.InstantiatePort(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(bool));
         var rightPort = node.InstantiatePort(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(bool));
 
+        letfPort.portColor = Color.green;
+        rightPort.portColor = Color.green;
+
         node.inputContainer.Add(letfPort);
         node.outputContainer.Add(rightPort);
-        //node.outputContainer;
 
         node.RefreshPorts();
         node.RefreshExpandedState();
 
         this.AddElement(node);
         return node;
-
     }
 
     public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)
@@ -174,6 +200,4 @@ public class ScriptMindmapGraphView : GraphView
 
         return compatiblePorts;
     }
-
-
 }
