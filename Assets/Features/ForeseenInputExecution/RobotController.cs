@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 
 public class RobotController : MonoBehaviour
 {
@@ -23,7 +24,6 @@ public class RobotController : MonoBehaviour
 
 
         if (_isMoving) _transform.position = Vector3.MoveTowards(_currentPos, _targetPos, _moveSpeed * Time.deltaTime);
-        //if (_isRotating) _transform.Rotate = Vector3.MoveTowards(_currentPos, _targetPos, _moveSpeed * Time.deltaTime);
 
         if (Vector3.Distance(_transform.position, _targetPos) >= 0.001f) return;
         _isMoving = false;
@@ -34,6 +34,15 @@ public class RobotController : MonoBehaviour
         _transform.rotation = _targetRot;
         _isRotating = false;
 
+    }
+
+    private void OnDestroy()
+    {
+        if (_cts != null)
+        {
+            _cts.Cancel();
+            _cts.Dispose();
+        }
     }
 
     #endregion
@@ -52,9 +61,12 @@ public class RobotController : MonoBehaviour
         AddToInputQueue(new RotateCommand(angle));
     }
 
-    public void OnClick_PlaySequence()
+    public async void OnClick_PlaySequence()
     {
-        PlayQueueAsync();
+        _cts?.Cancel(); 
+        _cts = new CancellationTokenSource();
+
+        await PlayQueueAsync(_cts.Token);
     }
 
     public void MoveForward()
@@ -79,20 +91,33 @@ public class RobotController : MonoBehaviour
 
     }
 
-    public async Task PlayQueueAsync()
+    public async Task PlayQueueAsync(CancellationToken token)
     {
         while (_playQueue.Count > 0)
         {
+            if (token.IsCancellationRequested) return;
+
             ICommandInputs command = _playQueue.Dequeue();
             AddToUndoList(command);
             command.Execute(this);
 
             while (_isMoving || _isRotating)
             {
+                if (token.IsCancellationRequested) return;
                 await Task.Yield();
             }
 
-            await Task.Delay((int)(_actionDuration * 1000));
+            try
+            {
+                await Task.Delay((int)(_actionDuration * 1000), token);
+                
+            }
+            catch (System.Threading.Tasks.TaskCanceledException)
+            {
+                
+                return;
+            }
+
         }
 
     }
@@ -165,6 +190,8 @@ public class RobotController : MonoBehaviour
     private Stack<ICommandInputs> _undoStack = new Stack<ICommandInputs>();
     private Stack<ICommandInputs> _redoStack = new Stack<ICommandInputs>();
     private int _listIndex;
+
+    private CancellationTokenSource _cts;
 
     #endregion
 }
