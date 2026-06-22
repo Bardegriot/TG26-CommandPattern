@@ -20,7 +20,7 @@ public class ScriptMindmapWindows : EditorWindow
     private Dictionary<string, string> presetPaths = new Dictionary<string, string>();
     private string activePresetPath = "";
 
-    [MenuItem("Tools/BreakingFrame/ScriptMindmap")]
+    [MenuItem("Tools/BreakingFrame/ScriptMindmap #m")]
     public static void ShowWindow()
     {
          GetWindow<ScriptMindmapWindows>("Script Mindmap");
@@ -40,7 +40,7 @@ public class ScriptMindmapWindows : EditorWindow
         assemblyPopup.style.width = 200; assemblyPopup.style.marginLeft = 5;
         assemblyPopup.RegisterValueChangedCallback(evt => UpdateInterfaceOptions(evt.newValue));
 
-        interfacePopup = new PopupField<string>("Interface:", interfaces, 0);
+        interfacePopup = new PopupField<string>("Filter:", interfaces, 0);
         interfacePopup.style.width = 200; interfacePopup.style.marginLeft = 5;
 
         UpdateInterfaceOptions(assemblyPopup.value);
@@ -115,7 +115,8 @@ public class ScriptMindmapWindows : EditorWindow
 
     private void UpdateInterfaceOptions(string assemblyName)
     {
-        interfaces.Clear(); interfaces.Add(""); 
+        interfaces.Clear(); 
+        interfaces.Add("[All Features / Classes]");
 
         try
         {

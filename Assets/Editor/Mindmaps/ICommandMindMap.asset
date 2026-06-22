@@ -1,0 +1,97 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e753bf8495e2440319b2095d29eb37bf, type: 3}
+  m_Name: ICommandMindMap
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::ScriptMindmapData
+  targetAssembly: Assembly-CSharp
+  targetInterface: ICommandInputs
+  savedNotes:
+  - nodeId: c6e6f43d-5cc1-4691-8003-ce98748a9b96
+    nodeTitle: Undo feature
+    position: {x: 455, y: 345}
+    features:
+    - Dict or List ?
+  savedGeneratedNodes:
+  - typeName: ICommandInputs
+    position: {x: -143, y: -159}
+  - typeName: IRotateCommandReceiver
+    position: {x: 181, y: -265}
+  - typeName: IMoveForwardCommandReceiver
+    position: {x: 171, y: -126}
+  - typeName: MoveForwardCommand
+    position: {x: 202, y: 9}
+  - typeName: RotateCommand
+    position: {x: 216, y: 177}
+  - typeName: IUndoCommand
+    position: {x: 216, y: 377}
+  savedFeatureColors:
+  - typeKeyName: ScriptMindmapData, Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.39764413, g: 0.23696266, b: 0.8796358, a: 1}
+  - typeKeyName: NoteNodeData, Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.89489275, g: 0.2200326, b: 0.3648567, a: 1}
+  - typeKeyName: GeneratedNodeData, Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.1794853, g: 0.5353025, b: 0.77943766, a: 1}
+  - typeKeyName: ColorData, Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.42387915, g: 0.2937919, b: 0.81341547, a: 1}
+  - typeKeyName: EdgeLinkData, Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.305933, g: 0.61284417, b: 0.8268028, a: 1}
+  - typeKeyName: ScriptMindmapGraphView, Assembly-CSharp-Editor, Version=0.0.0.0,
+      Culture=neutral, PublicKeyToken=null
+    colorValue: {r: 0.8020466, g: 0.6053453, b: 0.27068517, a: 1}
+  - typeKeyName: ScriptMindmapWindows, Assembly-CSharp-Editor, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.812091, g: 0.8008923, b: 0.18741736, a: 1}
+  - typeKeyName: UnitySourceGeneratedAssemblyMonoScriptTypes_v1, Assembly-CSharp-Editor,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    colorValue: {r: 0.19732381, g: 0.33377707, b: 0.7754617, a: 1}
+  - typeKeyName: ICommandInputs, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.7114928, g: 0.24489643, b: 0.8590939, a: 1}
+  - typeKeyName: IMoveForwardCommandReceiver, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.18966804, g: 0.37758973, b: 0.7588745, a: 1}
+  - typeKeyName: IRotateCommandReceiver, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 0.25083092, g: 0.8309905, b: 0.30704576, a: 1}
+  - typeKeyName: IUndoCommand, Assembly-CSharp, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    colorValue: {r: 1, g: 0.2028302, b: 0.2028302, a: 1}
+  savedLinks:
+  - outputNodeId: ICommandInputs
+    outputPortName: Out
+    inputNodeId: IMoveForwardCommandReceiver
+    inputPortName: In
+  - outputNodeId: ICommandInputs
+    outputPortName: Out
+    inputNodeId: IRotateCommandReceiver
+    inputPortName: In
+  - outputNodeId: ICommandInputs
+    outputPortName: Out
+    inputNodeId: IUndoCommand
+    inputPortName: In
+  - outputNodeId: ICommandInputs
+    outputPortName: Out
+    inputNodeId: MoveForwardCommand
+    inputPortName: In
+  - outputNodeId: ICommandInputs
+    outputPortName: Out
+    inputNodeId: RotateCommand
+    inputPortName: In
+  - outputNodeId: IUndoCommand
+    outputPortName: Out
+    inputNodeId: c6e6f43d-5cc1-4691-8003-ce98748a9b96
+    inputPortName: In

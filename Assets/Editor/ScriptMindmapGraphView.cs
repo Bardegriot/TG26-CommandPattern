@@ -51,10 +51,25 @@ public class ScriptMindmapGraphView : GraphView
 
         System.Action<string> addFeatureField = (textValue) =>
         {
+            VisualElement row = new VisualElement();
+            row.style.flexDirection = FlexDirection.Row;
+            row.style.marginTop = 2; row.style.marginBottom = 2;
+
             TextField newFeatureField = new TextField { value = textValue };
+            newFeatureField.style.flexGrow = 1;
             newFeatureField.style.whiteSpace = WhiteSpace.Normal;
-            newFeatureField.style.marginTop = 2; newFeatureField.style.marginBottom = 2;
-            listContainer.Add(newFeatureField);
+
+            Button deleteRowButton = new Button(() => {
+                listContainer.Remove(row);
+                node.RefreshExpandedState();
+            }) { text = "X" };
+            deleteRowButton.style.marginLeft = 4;
+            deleteRowButton.style.paddingLeft = 4; deleteRowButton.style.paddingRight = 4;
+
+            row.Add(newFeatureField);
+            row.Add(deleteRowButton);
+            listContainer.Add(row);
+            
             node.RefreshExpandedState();
         };
 
@@ -104,7 +119,9 @@ public class ScriptMindmapGraphView : GraphView
         int _indexX = 0; int _indexY = 0;
 
         Type filterType = null;
-        if (!string.IsNullOrEmpty(baseInterfaceFilter))
+        bool shouldFilter = !string.IsNullOrEmpty(baseInterfaceFilter) && baseInterfaceFilter != "[All Features / Classes]";
+        
+        if (shouldFilter)
         {
             foreach (var t in allTypes)
             {
@@ -117,8 +134,17 @@ public class ScriptMindmapGraphView : GraphView
 
         foreach (var type in allTypes)
         {
+            if (type.Name.Contains("<") || type.IsNested) continue;
+
             bool isValid = false;
-            if (filterType != null) isValid = filterType.IsAssignableFrom(type);
+            if (!shouldFilter)
+            {
+                isValid = type.IsClass || type.IsInterface || (type.IsValueType && !type.IsEnum);
+            }
+            else if (filterType != null)
+            {
+                isValid = filterType.IsAssignableFrom(type);
+            }
             else
             {
                 foreach (var i in type.GetInterfaces())
